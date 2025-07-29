@@ -18,6 +18,25 @@
      (作業中)              (git add)           (git commit)        (git push)
 ```
 
+### 🔄 Git ワークフローの図解
+
+```mermaid
+flowchart TD
+    A["📁 ワーキングディレクトリ<br/>(編集中のファイル)"] --> B["📦 ステージングエリア<br/>(git add)"]
+    B --> C["💾 ローカルリポジトリ<br/>(git commit)"]
+    C --> D["☁️ リモートリポジトリ<br/>(git push)"]
+    
+    D --> E["👥 チーム共有<br/>(GitHub)"]
+    E --> F["⬇️ 最新取得<br/>(git pull)"]
+    F --> A
+    
+    style A fill:#e1f5fe
+    style B fill:#fff3e0
+    style C fill:#c8e6c9
+    style D fill:#f3e5f5
+    style E fill:#fce4ec
+```
+
 ### 現在のプロジェクト構成
 - **リポジトリ名**: `01tuning`
 - **リモートURL**: `https://github.com/daisuke00001/01tuning.git`
@@ -72,10 +91,49 @@ git push origin main
 ## ブランチを使った機能開発
 
 ### ブランチ戦略の図解
+
+```mermaid
+gitGraph
+    commit id: "初回コミット"
+    commit id: "プロジェクト構造"
+    branch feature/data-processing
+    checkout feature/data-processing
+    commit id: "CSV読込実装"
+    commit id: "エラー処理追加"
+    commit id: "テスト作成"
+    checkout main
+    commit id: "ドキュメント更新"
+    merge feature/data-processing
+    commit id: "機能完成"
+    branch feature/model-training
+    checkout feature/model-training
+    commit id: "モデル訓練"
+    commit id: "パラメータ調整"
+    checkout main
+    merge feature/model-training
+    commit id: "v1.0リリース"
 ```
-main ─────●─────●─────●─────●─────
-          │                   ↗
-          └─── feature/new-function ──●──●──●
+
+### 🔄 開発ワークフローの全体像
+
+```mermaid
+flowchart TD
+    A["🏠 main ブランチ"] --> B["git checkout -b feature/xxx<br/>🌿 機能ブランチ作成"]
+    B --> C["💻 機能開発<br/>ファイル編集"]
+    C --> D["git add & commit<br/>📝 変更をコミット"]
+    D --> E["git push -u origin feature/xxx<br/>☁️ リモートにプッシュ"]
+    E --> F["🔄 Pull Request作成<br/>GitHubでPR"]
+    F --> G["👀 コードレビュー<br/>チームで確認"]
+    G --> H["✅ マージ承認"]
+    H --> I["🎯 main に統合"]
+    I --> J["git checkout main<br/>🏠 メインに戻る"]
+    J --> K["git pull origin main<br/>⬇️ 最新取得"]
+    K --> L["git branch -d feature/xxx<br/>🗑️ ブランチ削除"]
+    L --> A
+    
+    style A fill:#c8e6c9
+    style F fill:#fff3e0
+    style I fill:#f3e5f5
 ```
 
 ### 1. 新しい機能ブランチを作成
