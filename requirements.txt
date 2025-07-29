@@ -1,0 +1,16 @@
+# 基本的な依存関係（ローカル開発用）
+torch>=2.0.0
+transformers>=4.42.1
+datasets>=2.14.0
+numpy>=1.21.0
+pandas>=1.3.0
+PyYAML>=6.0
+tqdm>=4.64.0
+jupyter>=1.0.0
+notebook>=6.4.0
+
+# 開発用ツール
+pytest>=7.0.0
+black>=22.0.0
+flake8>=5.0.0
+mypy>=0.991

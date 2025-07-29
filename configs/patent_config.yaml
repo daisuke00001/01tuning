@@ -1,0 +1,89 @@
+# 特許データ専用設定
+base_config: "configs/base_config.yaml"
+
+# モデル設定
+model:
+  name: "tokyotech-llm/Swallow-7b-instruct-hf"
+  model_type: "swallow"
+  tokenizer_name: "tokyotech-llm/Swallow-7b-instruct-hf"
+  use_fast_tokenizer: true
+  trust_remote_code: true
+
+# 特許データセット設定
+dataset:
+  name: "patent_japanese"
+  format: "patent"
+  data_files:
+    train: "data/processed/patent_train.jsonl"
+    validation: "data/processed/patent_val.jsonl"
+    test: "data/processed/patent_test.jsonl"
+  
+  # 特許文書のテンプレート
+  instruction_template: |
+    以下の特許文書の要約を作成してください。
+
+    ### 特許文書:
+    {patent_text}
+
+    ### 要約:
+  response_template: "{summary}"
+  
+  # 特許固有の前処理設定
+  max_patent_length: 4096
+  max_summary_length: 512
+  remove_references: true
+  clean_formatting: true
+
+# 特許データ用トレーニング設定
+training:
+  per_device_train_batch_size: 1
+  per_device_eval_batch_size: 1
+  gradient_accumulation_steps: 16
+  learning_rate: 5e-5
+  num_train_epochs: 3
+  max_steps: -1
+  lr_scheduler_type: "linear"
+  warmup_ratio: 0.1
+  logging_steps: 10
+  save_steps: 500
+  eval_steps: 500
+  save_total_limit: 2
+  load_best_model_at_end: true
+  metric_for_best_model: "eval_loss"
+  greater_is_better: false
+  
+  # 特許データ用の長い系列長
+  max_seq_length: 4096
+
+# LoRA設定（特許データ最適化）
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.1
+  target_modules: ["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+  bias: "none"
+  task_type: "CAUSAL_LM"
+
+# 特許データ固有の評価メトリクス
+evaluation:
+  metrics: ["rouge", "bleu", "patent_similarity"]
+  eval_batch_size: 2
+  
+  # 特許要約評価用設定
+  rouge_types: ["rouge1", "rouge2", "rougeL"]
+  bleu_max_order: 4
+  
+# データ前処理設定
+preprocessing:
+  # 特許文書のセクション
+  sections_to_extract: ["abstract", "claims", "description"]
+  
+  # クリーニングルール
+  remove_patterns:
+    - "\\[\\d+\\]"  # 参考文献番号
+    - "Fig\\. \\d+"  # 図表参照
+    - "Table \\d+"   # テーブル参照
+  
+  # 文字数制限
+  min_text_length: 100
+  max_text_length: 8000

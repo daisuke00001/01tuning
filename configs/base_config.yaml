@@ -1,0 +1,53 @@
+# 基本設定ファイル
+project:
+  name: "01tuning"
+  version: "1.0.0"
+  description: "LLM Fine-tuning Project"
+
+# データ設定
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  samples_dir: "data/samples"
+  max_seq_length: 2048
+  train_split: 0.8
+  val_split: 0.1
+  test_split: 0.1
+
+# モデル設定
+model:
+  cache_dir: "models/cache"
+  output_dir: "models/saved_models"
+  torch_dtype: "float16"
+  device_map: "auto"
+
+# トレーニング設定
+training:
+  batch_size: 4
+  gradient_accumulation_steps: 4
+  learning_rate: 2e-4
+  num_epochs: 3
+  warmup_steps: 100
+  logging_steps: 10
+  save_steps: 500
+  eval_steps: 500
+  max_grad_norm: 1.0
+
+# LoRA設定
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.1
+  target_modules: ["q_proj", "v_proj", "k_proj", "o_proj"]
+
+# ログ設定
+logging:
+  log_dir: "logs"
+  log_level: "INFO"
+  wandb_project: null
+  wandb_entity: null
+
+# 評価設定
+evaluation:
+  metrics: ["perplexity", "bleu", "rouge"]
+  eval_batch_size: 8
