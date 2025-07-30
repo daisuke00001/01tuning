@@ -47,7 +47,7 @@ class ModelManager:
         try:
             from unsloth import FastLanguageModel
             logger.info("LoRA設定を適用中...")
-            self.model = FastLanguageModel.get_peft_lora(
+            self.model = FastLanguageModel.get_peft_model(
                 self.model,
                 r=self.config.lora.r,
                 target_modules=self.config.lora.target_modules,
