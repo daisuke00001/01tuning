@@ -17,8 +17,8 @@ class InferenceManager:
     def _setup_inference(self):
         """推論モードをセットアップ"""
         try:
-            from unsloth import FastInferenceModel
-            FastInferenceModel.from_pretrained(self.model)
+            # モデルを推論モードに設定
+            self.model.eval()
             logger.info("✅推論モードセットアップ完了")
         except Exception as e:
             logger.error(f"✖推論モード設定エラー: {e}")
