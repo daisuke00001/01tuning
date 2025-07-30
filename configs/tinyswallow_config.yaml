@@ -1,13 +1,17 @@
-# TinySwallow モデル専用設定
+# TinySwallow モデル専用設定（Google Colab T4 GPU最適化）
 base_config: "configs/base_config.yaml"
 
 # モデル固有設定
 model:
-  name: "tokyotech-llm/Swallow-7b-instruct-hf"
-  model_type: "swallow"
-  tokenizer_name: "tokyotech-llm/Swallow-7b-instruct-hf"
+  name: "SakanaAI/TinySwallow-1.5B-Instruct"
+  model_type: "llama"
+  tokenizer_name: "SakanaAI/TinySwallow-1.5B-Instruct"
   use_fast_tokenizer: true
-  trust_remote_code: true
+  trust_remote_code: false
+  max_seq_length: 1024
+  dtype: "float16"
+  load_in_4bit: true
+  token: null
 
 # データセット設定
 dataset:
@@ -16,32 +20,52 @@ dataset:
   instruction_template: "以下の指示に従ってください。\n\n### 指示:\n{instruction}\n\n### 応答:\n"
   response_template: "{output}"
 
-# TinySwallow特有のトレーニング設定
+# データ設定（下位互換性）
+data:
+  dataset_name: "yahma/alpaca-cleaned-ja"
+  train_split: "train"
+  text_field: "text"
+  dataset_num_proc: 2
+  packing: true
+
+# TinySwallow特有のトレーニング設定（Google Colab T4 GPU最適化）
 training:
-  per_device_train_batch_size: 2
-  per_device_eval_batch_size: 2
-  gradient_accumulation_steps: 8
-  learning_rate: 1e-4
-  num_train_epochs: 2
-  max_steps: -1
-  lr_scheduler_type: "cosine"
-  warmup_ratio: 0.03
-  logging_steps: 5
-  save_steps: 200
-  eval_steps: 200
-  save_total_limit: 3
-  load_best_model_at_end: true
+  per_device_train_batch_size: 1
+  per_device_eval_batch_size: 1
+  gradient_accumulation_steps: 4
+  learning_rate: 5e-5
+  num_train_epochs: null
+  max_steps: 100
+  warmup_steps: 10
+  warmup_ratio: null
+  lr_scheduler_type: "linear"
+  logging_steps: 10
+  save_steps: 50
+  eval_steps: 50
+  save_total_limit: 2
+  load_best_model_at_end: false
   metric_for_best_model: "eval_loss"
   greater_is_better: false
+  optim: "adamw_torch"
+  weight_decay: 0.01
+  seed: 42
+  output_dir: "/content/drive/MyDrive/tinyswallow_outputs"
+  report_to: "none"
 
 # LoRA設定（TinySwallow最適化）
 lora:
-  r: 8
-  alpha: 16
-  dropout: 0.05
+  r: 16
+  alpha: 32
+  lora_alpha: 32
+  dropout: 0.1
+  lora_dropout: 0.1
   target_modules: ["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
   bias: "none"
   task_type: "CAUSAL_LM"
+  use_gradient_checkpointing: "unsloth"
+  random_state: 42
+  use_rslora: false
+  loftq_config: null
 
 # 量子化設定
 quantization:
