@@ -3,6 +3,7 @@
 import torch
 from typing import Tuple, Optional
 import logging
+from config import Config
 
 # ログ設定
 logging.basicConfig(level=logging.INFO)

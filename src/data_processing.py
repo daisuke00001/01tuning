@@ -2,6 +2,7 @@
 from datasets import load_dataset, Dataset
 from typing import Dict, List, Any
 import logging
+from config import Config
 
 logger = logging.getLogger(__name__)
 

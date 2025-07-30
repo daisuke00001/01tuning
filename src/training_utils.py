@@ -2,6 +2,7 @@
 
 from trl import SFTConfig, SFTTrainer
 import logging
+from config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +12,7 @@ class TrainingManager:
     def __init__(self, config: Config):
         self.config = config
         self.model = None
-        self.tarining_stats = None
+        self.training_stats = None
         
     def create_trainer(self, model, tokenizer, dataset) -> SFTTrainer:
         """トレーナーを作成"""
