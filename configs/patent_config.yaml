@@ -1,13 +1,17 @@
-# 特許データ専用設定
+# 特許データ専用設定（Google Colab T4 GPU最適化）
 base_config: "configs/base_config.yaml"
 
 # モデル設定
 model:
-  name: "tokyotech-llm/Swallow-7b-instruct-hf"
-  model_type: "swallow"
-  tokenizer_name: "tokyotech-llm/Swallow-7b-instruct-hf"
+  name: "SakanaAI/TinySwallow-1.5B-Instruct"
+  model_type: "llama"
+  tokenizer_name: "SakanaAI/TinySwallow-1.5B-Instruct"
   use_fast_tokenizer: true
-  trust_remote_code: true
+  trust_remote_code: false
+  max_seq_length: 2048
+  dtype: "float16"
+  load_in_4bit: true
+  token: null
 
 # 特許データセット設定
 dataset:
@@ -18,60 +22,78 @@ dataset:
     validation: "data/processed/patent_val.jsonl"
     test: "data/processed/patent_test.jsonl"
   
-  # 特許文書のテンプレート
+  # 特許文書のテンプレート（実施形態）
   instruction_template: |
-    以下の特許文書の要約を作成してください。
+    以下の特許文書の実施形態を作成してください。
 
     ### 特許文書:
     {patent_text}
 
-    ### 要約:
-  response_template: "{summary}"
+    ### 実施形態:
+  response_template: "{implementation}"
   
-  # 特許固有の前処理設定
-  max_patent_length: 4096
-  max_summary_length: 512
+  # 特許固有の前処理設定（実施形態用）
+  max_patent_length: 2048
+  max_implementation_length: 1024
   remove_references: true
   clean_formatting: true
 
-# 特許データ用トレーニング設定
+# データ設定（config.py互換性）
+data:
+  dataset_name: "patent_japanese"
+  train_split: "train"
+  text_field: "text"
+  dataset_num_proc: 2
+  packing: false
+
+# 特許データ用トレーニング設定（Google Colab T4 GPU最適化）
 training:
   per_device_train_batch_size: 1
   per_device_eval_batch_size: 1
-  gradient_accumulation_steps: 16
-  learning_rate: 5e-5
-  num_train_epochs: 3
-  max_steps: -1
+  gradient_accumulation_steps: 4
+  learning_rate: 3e-5
+  num_train_epochs: null
+  max_steps: 200
+  warmup_steps: 20
+  warmup_ratio: null
   lr_scheduler_type: "linear"
-  warmup_ratio: 0.1
   logging_steps: 10
-  save_steps: 500
-  eval_steps: 500
+  save_steps: 50
+  eval_steps: 50
   save_total_limit: 2
-  load_best_model_at_end: true
+  load_best_model_at_end: false
   metric_for_best_model: "eval_loss"
   greater_is_better: false
-  
-  # 特許データ用の長い系列長
-  max_seq_length: 4096
+  optim: "adamw_torch"
+  weight_decay: 0.01
+  seed: 42
+  output_dir: "/content/drive/MyDrive/patent_outputs"
+  report_to: "none"
 
 # LoRA設定（特許データ最適化）
 lora:
   r: 16
   alpha: 32
+  lora_alpha: 32
   dropout: 0.1
+  lora_dropout: 0.1
   target_modules: ["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
   bias: "none"
   task_type: "CAUSAL_LM"
+  use_gradient_checkpointing: "unsloth"
+  random_state: 42
+  use_rslora: false
+  loftq_config: null
 
-# 特許データ固有の評価メトリクス
+# 特許データ固有の評価メトリクス（実施形態用）
 evaluation:
-  metrics: ["rouge", "bleu", "patent_similarity"]
-  eval_batch_size: 2
+  metrics: ["rouge", "bleu", "patent_implementation_quality"]
+  eval_batch_size: 1
   
-  # 特許要約評価用設定
+  # 特許実施形態評価用設定
   rouge_types: ["rouge1", "rouge2", "rougeL"]
   bleu_max_order: 4
+  implementation_coherence: true
   
 # データ前処理設定
 preprocessing:
@@ -87,3 +109,17 @@ preprocessing:
   # 文字数制限
   min_text_length: 100
   max_text_length: 8000
+
+# 量子化設定（Google Colab T4 GPU最適化）
+quantization:
+  load_in_4bit: true
+  bnb_4bit_use_double_quant: true
+  bnb_4bit_quant_type: "nf4"
+  bnb_4bit_compute_dtype: "float16"
+
+# Unsloth設定（特許データ用）
+unsloth:
+  use_unsloth: true
+  max_seq_length: 2048
+  dtype: "float16"
+  load_in_4bit: true
