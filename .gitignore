@@ -58,4 +58,6 @@ venv.bak/
 Thumbs.db
 
 # Hugging Face cache
-.cache/
+.cache/.venv/
+__pycache__/
+*.pyc
