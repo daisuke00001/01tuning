@@ -60,5 +60,6 @@ Thumbs.db
 # Hugging Face cache
 .cache/
 
-# claude
+# Claude Code関連ファイル
 .claude/
+CLAUDE.md
