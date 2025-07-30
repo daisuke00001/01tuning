@@ -87,8 +87,8 @@ class TrainingManager:
         return {
             "train_runtime_seconds": round(runtime, 1),
             "train_runtime_minutes": round(runtime / 60, 2),
-            "train_samples_per_second": self.training_stats.metrics.get('train_samples_persecond', 0),
-            "train_steps_oer_second": self.training_stats.metrics.get('train_steps_persecond', 0),
+            "train_samples_per_second": self.training_stats.metrics.get('train_samples_per_second', 0),
+            "train_steps_per_second": self.training_stats.metrics.get('train_steps_per_second', 0),
             "total_flos": self.training_stats.metrics.get('total_flos', 0),
             "train_loss": self.training_stats.metrics.get('train_loss', 0),
         }
