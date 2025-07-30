@@ -1,13 +1,30 @@
 # 特許データ専用設定
-base_config: "configs/base_config.yaml"
-
-# モデル設定
 model:
-  name: "tokyotech-llm/Swallow-7b-instruct-hf"
-  model_type: "swallow"
-  tokenizer_name: "tokyotech-llm/Swallow-7b-instruct-hf"
-  use_fast_tokenizer: true
-  trust_remote_code: true
+  name: "SakanaAI/TinySwallow-1.5B-Instruct"
+  max_seq_length: 2048
+  dtype: null
+  load_in_4bit: true
+  token: null
+
+
+# LoRA設定（特許データ最適化）
+lora:
+  r: 32  # 特許データの複雑性に対応
+  lora_alpha: 32
+  lora_dropout: 0.0
+  bias: "none"
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  use_gradient_checkpointing: "unsloth"
+  random_state: 3407
+  use_rslora: false
+  loftq_config: null
 
 # 特許データセット設定
 dataset:
@@ -20,7 +37,7 @@ dataset:
   
   # 特許文書のテンプレート
   instruction_template: |
-    以下の特許文書の要約を作成してください。
+    以下の特許文書の実施形態を作成してください。
 
     ### 特許文書:
     {patent_text}
@@ -36,34 +53,22 @@ dataset:
 
 # 特許データ用トレーニング設定
 training:
-  per_device_train_batch_size: 1
-  per_device_eval_batch_size: 1
-  gradient_accumulation_steps: 16
-  learning_rate: 5e-5
-  num_train_epochs: 3
-  max_steps: -1
-  lr_scheduler_type: "linear"
-  warmup_ratio: 0.1
-  logging_steps: 10
-  save_steps: 500
-  eval_steps: 500
+  per_device_train_batch_size: 1  # 特許データは長いため削減
+  gradient_accumulation_steps: 8
+  warmup_steps: 10
+  max_steps: 100
+  num_train_epochs: null
+  learning_rate: 1e-4  # 特許データには低い学習率
+  logging_steps: 5
+  optim: "adamw_8bit"
+  weight_decay: 0.01
+  lr_scheduler_type: "cosine"
+  seed: 3407
+  output_dir: "patent_outputs"
+  report_to: "none"
+  save_steps: 50
   save_total_limit: 2
-  load_best_model_at_end: true
-  metric_for_best_model: "eval_loss"
-  greater_is_better: false
   
-  # 特許データ用の長い系列長
-  max_seq_length: 4096
-
-# LoRA設定（特許データ最適化）
-lora:
-  r: 16
-  alpha: 32
-  dropout: 0.1
-  target_modules: ["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
-  bias: "none"
-  task_type: "CAUSAL_LM"
-
 # 特許データ固有の評価メトリクス
 evaluation:
   metrics: ["rouge", "bleu", "patent_similarity"]

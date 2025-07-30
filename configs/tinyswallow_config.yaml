@@ -1,13 +1,12 @@
 # TinySwallow モデル専用設定
-base_config: "configs/base_config.yaml"
-
 # モデル固有設定
 model:
-  name: "tokyotech-llm/Swallow-7b-instruct-hf"
-  model_type: "swallow"
-  tokenizer_name: "tokyotech-llm/Swallow-7b-instruct-hf"
-  use_fast_tokenizer: true
-  trust_remote_code: true
+  name: "SakanaAI/TinySwallow-1.5B-Instruct"
+  tokenizer_name: "SakanaAI/TinySwallow-1.5B-Instruct"
+  max_seq_length: 2048
+  dtype: null  # 自動検出
+  load_in_4bit: true
+  token: null  # Hugging Faceのトークナイザーを使用する場合は指定
 
 # データセット設定
 dataset:
@@ -16,32 +15,42 @@ dataset:
   instruction_template: "以下の指示に従ってください。\n\n### 指示:\n{instruction}\n\n### 応答:\n"
   response_template: "{output}"
 
+# LoRA設定（TinySwallow最適化）
+lora:
+  r: 16
+  lora_alpha: 16
+  lora_dropout: 0.0
+  bias: "none"
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  use_gradient_checkpointing: "unsloth"
+  random_state: 3407
+  use_rslora: false
+  loftq_config: null
+
 # TinySwallow特有のトレーニング設定
 training:
   per_device_train_batch_size: 2
-  per_device_eval_batch_size: 2
-  gradient_accumulation_steps: 8
-  learning_rate: 1e-4
-  num_train_epochs: 2
-  max_steps: -1
-  lr_scheduler_type: "cosine"
-  warmup_ratio: 0.03
-  logging_steps: 5
-  save_steps: 200
-  eval_steps: 200
-  save_total_limit: 3
-  load_best_model_at_end: true
-  metric_for_best_model: "eval_loss"
-  greater_is_better: false
-
-# LoRA設定（TinySwallow最適化）
-lora:
-  r: 8
-  alpha: 16
-  dropout: 0.05
-  target_modules: ["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
-  bias: "none"
-  task_type: "CAUSAL_LM"
+  gradient_accumulation_steps: 4
+  warmup_steps: 5
+  max_steps: 60  # テスト用（本格的には1000+）
+  num_train_epochs: null
+  learning_rate: 0.0002
+  logging_steps: 1
+  optim: "adamw_8bit"
+  weight_decay: 0.01
+  lr_scheduler_type: "linear"
+  seed: 3407
+  output_dir: "outputs"
+  report_to: "none"
+  save_steps: null
+  save_total_limit: null
 
 # 量子化設定
 quantization:
