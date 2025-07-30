@@ -46,10 +46,10 @@ class TrainingManager:
                 model=model,
                 tokenizer=tokenizer,
                 train_dataset=dataset,
-                deataset_text_field=self.config.data.text_field,
+                dataset_text_field=self.config.data.text_field,
                 max_seq_length=self.config.model.max_seq_length,
                 dataset_num_proc=self.config.data.dataset_num_proc,
-                packing=self.config.training.packing,
+                packing=self.config.data.packing,
                 args=sft_config,
             )
 
