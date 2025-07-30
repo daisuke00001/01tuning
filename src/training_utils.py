@@ -19,27 +19,27 @@ class TrainingManager:
         try:
             logger.info("トレーナーを設定中...")
 
-            # SEFTConfig 設定
+            # SFTConfig 設定（型変換を確実にする）
             sft_config = SFTConfig(
-                per_device_train_batch_size=self.config.training.per_device_train_batch_size,
-                gradient_accumulation_steps=self.config.training.gradient_accumulation_steps,
-                warmup_steps=self.config.training.warmup_steps,
-                max_steps=self.config.training.max_steps,
-                learning_rate=self.config.training.learning_rate,
-                logging_steps=self.config.training.logging_steps,
-                optim=self.config.training.optim,
-                weight_decay=self.config.training.weight_decay,
-                lr_scheduler_type=self.config.training.lr_scheduler_type,
-                seed=self.config.training.seed,
-                output_dir=self.config.training.output_dir,
-                report_to=self.config.training.report_to,
+                per_device_train_batch_size=int(self.config.training.per_device_train_batch_size),
+                gradient_accumulation_steps=int(self.config.training.gradient_accumulation_steps),
+                warmup_steps=int(self.config.training.warmup_steps),
+                max_steps=int(self.config.training.max_steps),
+                learning_rate=float(self.config.training.learning_rate),
+                logging_steps=int(self.config.training.logging_steps),
+                optim=str(self.config.training.optim),
+                weight_decay=float(self.config.training.weight_decay),
+                lr_scheduler_type=str(self.config.training.lr_scheduler_type),
+                seed=int(self.config.training.seed),
+                output_dir=str(self.config.training.output_dir),
+                report_to=str(self.config.training.report_to),
             )
 
-            # save_steps と save_total_limitが設定されている場合は追加
+            # save_steps と save_total_limitが設定されている場合は追加（型変換付き）
             if self.config.training.save_steps is not None:
-                sft_config.save_steps = self.config.training.save_steps
+                sft_config.save_steps = int(self.config.training.save_steps)
             if self.config.training.save_total_limit is not None:
-                sft_config.save_total_limit = self.config.training.save_total_limit
+                sft_config.save_total_limit = int(self.config.training.save_total_limit)
 
             # トレーナーの作成
             trainer = SFTTrainer(
