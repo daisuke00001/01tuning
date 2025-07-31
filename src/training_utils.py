@@ -14,6 +14,23 @@ class TrainingManager:
         self.model = None
         self.training_stats = None
         
+    def format_chatml_messages(self, example):
+        """ChatML形式のmessagesを単一テキストに変換"""
+        if 'messages' in example:
+            # messagesを単一のテキストに結合
+            text_parts = []
+            for message in example['messages']:
+                role = message.get('role', '')
+                content = message.get('content', '')
+                text_parts.append(f"<|im_start|>{role}\n{content}<|im_end|>")
+            return "\n".join(text_parts)
+        elif 'text' in example:
+            # 既にtextフィールドがある場合はそのまま返す
+            return example['text']
+        else:
+            # どちらもない場合は空文字列
+            return ""
+        
     def create_trainer(self, model, tokenizer, dataset) -> SFTTrainer:
         """トレーナーを作成"""
         try:
@@ -41,17 +58,35 @@ class TrainingManager:
             if self.config.training.save_total_limit is not None:
                 sft_config.save_total_limit = int(self.config.training.save_total_limit)
 
-            # トレーナーの作成
-            trainer = SFTTrainer(
-                model=model,
-                tokenizer=tokenizer,
-                train_dataset=dataset,
-                dataset_text_field=self.config.data.text_field,
-                max_seq_length=self.config.model.max_seq_length,
-                dataset_num_proc=self.config.data.dataset_num_proc,
-                packing=self.config.data.packing,
-                args=sft_config,
-            )
+            # データセットの形式を確認
+            sample_data = dataset[0] if len(dataset) > 0 else {}
+            
+            # ChatML形式の場合はformatting_funcを使用
+            if 'messages' in sample_data:
+                logger.info("ChatML形式のデータセットを検出、formatting_funcを使用します")
+                trainer = SFTTrainer(
+                    model=model,
+                    tokenizer=tokenizer,
+                    train_dataset=dataset,
+                    formatting_func=self.format_chatml_messages,
+                    max_seq_length=self.config.model.max_seq_length,
+                    dataset_num_proc=self.config.data.dataset_num_proc,
+                    packing=self.config.data.packing,
+                    args=sft_config,
+                )
+            else:
+                # 通常のテキスト形式の場合はdataset_text_fieldを使用
+                logger.info("通常のテキスト形式のデータセットを使用します")
+                trainer = SFTTrainer(
+                    model=model,
+                    tokenizer=tokenizer,
+                    train_dataset=dataset,
+                    dataset_text_field=self.config.data.text_field,
+                    max_seq_length=self.config.model.max_seq_length,
+                    dataset_num_proc=self.config.data.dataset_num_proc,
+                    packing=self.config.data.packing,
+                    args=sft_config,
+                )
 
             self.trainer = trainer
             logger.info("✅トレーナー作成完了")
