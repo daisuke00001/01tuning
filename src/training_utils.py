@@ -15,7 +15,7 @@ class TrainingManager:
         self.training_stats = None
         
     def format_chatml_messages(self, example):
-        """ChatML形式のmessagesを単一テキストに変換"""
+        """ChatML形式のmessagesを単一テキストに変換（リスト形式で返す）"""
         if 'messages' in example:
             # messagesを単一のテキストに結合
             text_parts = []
@@ -23,13 +23,14 @@ class TrainingManager:
                 role = message.get('role', '')
                 content = message.get('content', '')
                 text_parts.append(f"<|im_start|>{role}\n{content}<|im_end|>")
-            return "\n".join(text_parts)
+            # Unslothは文字列のリストを期待しているため、リストで返す
+            return ["\n".join(text_parts)]
         elif 'text' in example:
-            # 既にtextフィールドがある場合はそのまま返す
-            return example['text']
+            # 既にtextフィールドがある場合はリスト形式で返す
+            return [example['text']]
         else:
-            # どちらもない場合は空文字列
-            return ""
+            # どちらもない場合は空文字列をリスト形式で返す
+            return [""]
         
     def create_trainer(self, model, tokenizer, dataset) -> SFTTrainer:
         """トレーナーを作成"""
