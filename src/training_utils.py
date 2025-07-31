@@ -152,11 +152,11 @@ class TrainingManager:
                 # 通常のtext形式（推奨パス）
                 logger.info("✅ 通常text形式のデータセットを使用します（推奨）")
                 
-                # 設定ファイルの値を使用（安定性とパフォーマンスのバランス）
-                dataset_num_proc = min(self.config.data.dataset_num_proc, 2)  # 最大2に制限
-                packing = self.config.data.packing if hasattr(self.config.data, 'packing') else False
+                # Triton問題回避のため保守的設定を使用
+                dataset_num_proc = 1  # Tritonエラー回避のため1固定
+                packing = False       # packingを無効化
                 
-                logger.info(f"設定: dataset_num_proc={dataset_num_proc}, packing={packing}")
+                logger.info(f"設定: dataset_num_proc={dataset_num_proc}, packing={packing} (Triton問題回避)")
                 
                 trainer = SFTTrainer(
                     model=model,

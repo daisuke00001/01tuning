@@ -50,7 +50,7 @@ data:
   dataset_name: "patent_japanese"
   train_split: "train"
   text_field: "text"
-  dataset_num_proc: 2
+  dataset_num_proc: 1  # Tritonエラー回避のため1に変更
   packing: false
 
 # 特許データ用トレーニング設定（Google Colab T4 GPU最適化）
