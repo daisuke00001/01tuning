@@ -41,18 +41,39 @@ class TrainingManager:
                     
                     text_parts.append(f"<|im_start|>{role}\n{content}<|im_end|>")
                 
+                formatted_text = "\n".join(text_parts)
+                
+                # 長さ制限を適用（トークナイゼーション問題を回避）
+                max_chars = self.config.model.max_seq_length * 4  # 概算でトークン1個=4文字
+                if len(formatted_text) > max_chars:
+                    formatted_text = formatted_text[:max_chars] + "\n<|im_end|>"
+                    logger.warning(f"テキストが長すぎるため切り詰めました: {len(formatted_text)} -> {max_chars}")
+                
+                # デバッグ用ログ（最初の数件のみ）
+                if not hasattr(self, '_debug_count'):
+                    self._debug_count = 0
+                if self._debug_count < 3:
+                    logger.info(f"formatted_text sample {self._debug_count}: length={len(formatted_text)}, preview={formatted_text[:200]}...")
+                    self._debug_count += 1
+                
                 # Unslothは文字列のリストを期待しているため、リストで返す
-                return ["\n".join(text_parts)]
+                return [formatted_text]
             elif 'text' in example:
                 # 既にtextフィールドがある場合はリスト形式で返す
-                return [example['text']]
+                text = example['text']
+                # 長さ制限を適用
+                max_chars = self.config.model.max_seq_length * 4
+                if len(text) > max_chars:
+                    text = text[:max_chars]
+                    logger.warning(f"テキストが長すぎるため切り詰めました: {len(text)} -> {max_chars}")
+                return [text]
             else:
                 # どちらもない場合は空文字列をリスト形式で返す
                 return [""]
         except Exception as e:
             # エラーが発生した場合のフォールバック
             logger.error(f"formatting_funcでエラー発生: {e}, example keys: {list(example.keys()) if isinstance(example, dict) else type(example)}")
-            return [str(example)]
+            return ["[ERROR: Failed to format]"]
         
     def create_trainer(self, model, tokenizer, dataset) -> SFTTrainer:
         """トレーナーを作成"""
@@ -87,39 +108,69 @@ class TrainingManager:
             # データ構造をデバッグ出力
             if len(dataset) > 0:
                 logger.info(f"データセットサンプル構造: {list(sample_data.keys())}")
-                if 'messages' in sample_data:
-                    messages = sample_data['messages']
-                    logger.info(f"messages構造: {type(messages)}, 長さ: {len(messages) if hasattr(messages, '__len__') else 'N/A'}")
-                    if len(messages) > 0:
-                        first_message = messages[0]
-                        logger.info(f"最初のmessage構造: {type(first_message)}, 内容: {first_message if len(str(first_message)) < 200 else str(first_message)[:200]+'...'}")
+                sample_text_length = len(sample_data.get('text', '')) if 'text' in sample_data else 0
+                logger.info(f"サンプルテキスト長: {sample_text_length} 文字")
             
-            # ChatML形式の場合はformatting_funcを使用
+            # データ形式に応じた処理
             if 'messages' in sample_data:
-                logger.info("ChatML形式のデータセットを検出、formatting_funcを使用します")
-                trainer = SFTTrainer(
-                    model=model,
-                    tokenizer=tokenizer,
-                    train_dataset=dataset,
-                    formatting_func=self.format_chatml_messages,
-                    max_seq_length=self.config.model.max_seq_length,
-                    dataset_num_proc=self.config.data.dataset_num_proc,
-                    packing=self.config.data.packing,
-                    args=sft_config,
-                )
-            else:
-                # 通常のテキスト形式の場合はdataset_text_fieldを使用
-                logger.info("通常のテキスト形式のデータセットを使用します")
+                logger.warning("ChatML形式のデータセットを検出しました")
+                logger.warning("推奨: training_dataset.json または complete_dataset.json を使用してください")
+                
+                # ChatML形式を通常のtext形式に事前変換
+                try:
+                    logger.info("ChatML → text 形式変換中...")
+                    converted_data = []
+                    for example in dataset:
+                        formatted_texts = self.format_chatml_messages(example)
+                        converted_data.append({
+                            'text': formatted_texts[0],  # リストの最初の要素を取得
+                            'metadata': example.get('metadata', {})
+                        })
+                    
+                    # 新しいDatasetを作成
+                    from datasets import Dataset
+                    converted_dataset = Dataset.from_list(converted_data)
+                    logger.info(f"✅ ChatML変換完了: {len(converted_dataset)} 件")
+                    
+                    # 通常のtext形式として処理
+                    trainer = SFTTrainer(
+                        model=model,
+                        tokenizer=tokenizer,
+                        train_dataset=converted_dataset,
+                        dataset_text_field="text",
+                        max_seq_length=self.config.model.max_seq_length,
+                        dataset_num_proc=1,  # ChatML変換時は安定性優先
+                        packing=False,
+                        args=sft_config,
+                    )
+                    
+                except Exception as convert_error:
+                    logger.error(f"ChatML変換に失敗: {convert_error}")
+                    raise RuntimeError("ChatMLデータの処理に失敗しました。training_dataset.jsonの使用を推奨します。")
+                    
+            elif 'text' in sample_data:
+                # 通常のtext形式（推奨パス）
+                logger.info("✅ 通常text形式のデータセットを使用します（推奨）")
+                
+                # 設定ファイルの値を使用（安定性とパフォーマンスのバランス）
+                dataset_num_proc = min(self.config.data.dataset_num_proc, 2)  # 最大2に制限
+                packing = self.config.data.packing if hasattr(self.config.data, 'packing') else False
+                
+                logger.info(f"設定: dataset_num_proc={dataset_num_proc}, packing={packing}")
+                
                 trainer = SFTTrainer(
                     model=model,
                     tokenizer=tokenizer,
                     train_dataset=dataset,
                     dataset_text_field=self.config.data.text_field,
                     max_seq_length=self.config.model.max_seq_length,
-                    dataset_num_proc=self.config.data.dataset_num_proc,
-                    packing=self.config.data.packing,
+                    dataset_num_proc=dataset_num_proc,
+                    packing=packing,
                     args=sft_config,
                 )
+            else:
+                logger.error(f"サポートされていないデータ形式: {list(sample_data.keys())}")
+                raise ValueError("データセットにtextフィールドまたはmessagesフィールドが必要です")
 
             self.trainer = trainer
             logger.info("✅トレーナー作成完了")
