@@ -78,9 +78,33 @@ class ModelManager:
 
         return {
             "gpu_name": gpu_stats.name,
+            "total": round(total, 3),
+            "used": round(reserved, 3),
+            "percentage": round((reserved / total) * 100, 1),
+            # 下位互換性のため
             "total_memory_gb": round(total, 3),
             "reserved_memory_gb": round(reserved, 3),
-            "usage_percentage":round((reserved / total) * 100, 1)
+            "usage_percentage": round((reserved / total) * 100, 1)
+        }
+    
+    def get_model_info(self) -> dict:
+        """モデルパラメータ情報を取得"""
+        if self.model is None:
+            return {"error": "Model not loaded"}
+        
+        # 総パラメータ数を計算
+        total_params = sum(p.numel() for p in self.model.parameters())
+        
+        # 学習可能パラメータ数を計算
+        trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+        
+        # 学習可能パラメータの割合を計算
+        trainable_percentage = (trainable_params / total_params) * 100 if total_params > 0 else 0
+        
+        return {
+            "total_params": total_params,
+            "trainable_params": trainable_params,
+            "trainable_percentage": round(trainable_percentage, 2)
         }
     
     def save_model(self, save_path: str):

@@ -103,6 +103,21 @@ class UnslothConfig:
     load_in_4bit: bool = True
 
 @dataclass
+class EvaluationConfig:
+    """評価設定"""
+    metrics: List[str] = None
+    eval_batch_size: int = 1
+    rouge_types: List[str] = None
+    bleu_max_order: int = 4
+    implementation_coherence: bool = True
+    
+    def __post_init__(self):
+        if self.metrics is None:
+            self.metrics = ["rouge", "bleu", "patent_implementation_quality"]
+        if self.rouge_types is None:
+            self.rouge_types = ["rouge1", "rouge2", "rougeL"]
+
+@dataclass
 class DataConfig:
     """データ設定（下位互換性のため）"""
     dataset_name: str = "yahma/alpaca_cleand"
@@ -120,6 +135,7 @@ class Config:
     dataset: Optional[DatasetConfig] = None
     quantization: Optional[QuantizationConfig] = None
     unsloth: Optional[UnslothConfig] = None
+    evaluation: Optional[EvaluationConfig] = None
     data: Optional[DataConfig] = None  # 下位互換性のため
 
     @classmethod
@@ -135,6 +151,7 @@ class Config:
                 dataset=DatasetConfig(**config_dict.get('dataset', {})) if 'dataset' in config_dict else None,
                 quantization=QuantizationConfig(**config_dict.get('quantization', {})) if 'quantization' in config_dict else None,
                 unsloth=UnslothConfig(**config_dict.get('unsloth', {})) if 'unsloth' in config_dict else None,
+                evaluation=EvaluationConfig(**config_dict.get('evaluation', {})) if 'evaluation' in config_dict else None,
                 data=DataConfig(**config_dict.get('data', {})) if 'data' in config_dict else None
             )
         
@@ -152,6 +169,8 @@ class Config:
             config_dict['quantization'] = self.quantization.__dict__
         if self.unsloth:
             config_dict['unsloth'] = self.unsloth.__dict__
+        if self.evaluation:
+            config_dict['evaluation'] = self.evaluation.__dict__
         if self.data:
             config_dict['data'] = self.data.__dict__
         
