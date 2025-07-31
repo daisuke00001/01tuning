@@ -16,21 +16,43 @@ class TrainingManager:
         
     def format_chatml_messages(self, example):
         """ChatML形式のmessagesを単一テキストに変換（リスト形式で返す）"""
-        if 'messages' in example:
-            # messagesを単一のテキストに結合
-            text_parts = []
-            for message in example['messages']:
-                role = message.get('role', '')
-                content = message.get('content', '')
-                text_parts.append(f"<|im_start|>{role}\n{content}<|im_end|>")
-            # Unslothは文字列のリストを期待しているため、リストで返す
-            return ["\n".join(text_parts)]
-        elif 'text' in example:
-            # 既にtextフィールドがある場合はリスト形式で返す
-            return [example['text']]
-        else:
-            # どちらもない場合は空文字列をリスト形式で返す
-            return [""]
+        try:
+            if 'messages' in example:
+                # messagesを単一のテキストに結合
+                text_parts = []
+                for message in example['messages']:
+                    # メッセージの形式を確認して適切に処理
+                    if isinstance(message, dict):
+                        # 辞書形式: {"role": "user", "content": "..."}
+                        role = message.get('role', '')
+                        content = message.get('content', '')
+                    elif isinstance(message, list) and len(message) >= 2:
+                        # リスト形式: ["user", "content"]
+                        role = str(message[0]) if message[0] else ''
+                        content = str(message[1]) if message[1] else ''
+                    elif isinstance(message, str):
+                        # 文字列形式: 全体をcontentとして扱う
+                        role = 'unknown'
+                        content = message
+                    else:
+                        # その他の形式: 文字列に変換
+                        role = 'unknown'
+                        content = str(message)
+                    
+                    text_parts.append(f"<|im_start|>{role}\n{content}<|im_end|>")
+                
+                # Unslothは文字列のリストを期待しているため、リストで返す
+                return ["\n".join(text_parts)]
+            elif 'text' in example:
+                # 既にtextフィールドがある場合はリスト形式で返す
+                return [example['text']]
+            else:
+                # どちらもない場合は空文字列をリスト形式で返す
+                return [""]
+        except Exception as e:
+            # エラーが発生した場合のフォールバック
+            logger.error(f"formatting_funcでエラー発生: {e}, example keys: {list(example.keys()) if isinstance(example, dict) else type(example)}")
+            return [str(example)]
         
     def create_trainer(self, model, tokenizer, dataset) -> SFTTrainer:
         """トレーナーを作成"""
@@ -61,6 +83,16 @@ class TrainingManager:
 
             # データセットの形式を確認
             sample_data = dataset[0] if len(dataset) > 0 else {}
+            
+            # データ構造をデバッグ出力
+            if len(dataset) > 0:
+                logger.info(f"データセットサンプル構造: {list(sample_data.keys())}")
+                if 'messages' in sample_data:
+                    messages = sample_data['messages']
+                    logger.info(f"messages構造: {type(messages)}, 長さ: {len(messages) if hasattr(messages, '__len__') else 'N/A'}")
+                    if len(messages) > 0:
+                        first_message = messages[0]
+                        logger.info(f"最初のmessage構造: {type(first_message)}, 内容: {first_message if len(str(first_message)) < 200 else str(first_message)[:200]+'...'}")
             
             # ChatML形式の場合はformatting_funcを使用
             if 'messages' in sample_data:
