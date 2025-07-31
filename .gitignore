@@ -37,6 +37,11 @@ data/processed/*
 logs/*
 !logs/.gitkeep
 
+# Patent data (large datasets)
+data/JPB_*
+*.xml
+!data/raw/sample_patent.xml
+
 # Environment
 .env
 .venv

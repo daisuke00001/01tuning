@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<patent-document xmlns="http://www.wipo.int/standards/XMLSchema/ST96/Patent" 
+                 xmlns:jpcom="http://www.jpo.go.jp/standards/XMLSchema/ST96/JPCommon"
+                 xmlns:jppat="http://www.jpo.go.jp/standards/XMLSchema/ST96/JPPatent">
+  <jpcom:application-body>
+    <jpcom:invention-title>
+      ポリプロピレン樹脂組成物及びその成形品
+    </jpcom:invention-title>
+    
+    <jpcom:abstract>
+      本発明は、優れた耐衝撃性と剛性を両立するポリプロピレン樹脂組成物に関する。
+      この組成物は、プロピレン系重合体(A)と、エチレン・α-オレフィン共重合体(B)を含有し、
+      分子量分布(Mw/Mn)が2.0～4.0である。
+    </jpcom:abstract>
+    
+    <jpcom:description>
+      <jpcom:technical-field>
+        本発明は、自動車部品、家電製品等に使用されるポリプロピレン樹脂組成物に関する。
+      </jpcom:technical-field>
+      
+      <jpcom:background-art>
+        従来のポリプロピレン樹脂は、剛性は優れているが耐衝撃性に課題があった。
+        この問題を解決するため、様々な改良が検討されている。
+      </jpcom:background-art>
+      
+      <jpcom:disclosure>
+        本発明の課題は、優れた耐衝撃性と剛性を両立するポリプロピレン樹脂組成物を提供することである。
+        
+        この課題を解決するため、以下の構成を採用した：
+        (1) プロピレン系重合体(A) 50～90重量%
+        (2) エチレン・α-オレフィン共重合体(B) 10～50重量%
+        (3) 分子量分布(Mw/Mn) 2.0～4.0
+        
+        化学式: (-CH₂-CH(CH₃)-)ₙ
+        反応式: C₃H₆ → (-CH₂-CH(CH₃)-)ₙ
+      </jpcom:disclosure>
+      
+      <jpcom:best-mode>
+        実施例1：
+        プロピレン系重合体(A) 70重量%、エチレン・α-オレフィン共重合体(B) 30重量%を
+        溶融混練して樹脂組成物を得た。
+        
+        得られた組成物の物性：
+        - 曲げ強度: 35 MPa
+        - アイゾット衝撃強度: 45 kJ/m²
+        - 融点: 165℃
+      </jpcom:best-mode>
+    </jpcom:description>
+    
+    <jpcom:claims>
+      <jpcom:claim num="1">
+        プロピレン系重合体(A)50～90重量%と、
+        エチレン・α-オレフィン共重合体(B)10～50重量%とを含有し、
+        分子量分布(Mw/Mn)が2.0～4.0であることを特徴とする
+        ポリプロピレン樹脂組成物。
+      </jpcom:claim>
+      
+      <jpcom:claim num="2">
+        請求項1記載の樹脂組成物からなる成形品。
+      </jpcom:claim>
+    </jpcom:claims>
+  </jpcom:application-body>
+</patent-document>

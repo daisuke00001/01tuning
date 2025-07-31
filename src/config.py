@@ -76,6 +76,15 @@ class DatasetConfig:
     format: str = "alpaca"
     instruction_template: str = "以下の指示に従ってください。\n\n### 指示:\n{instruction}\n\n### 応答:\n"
     response_template: str = "{output}"
+    # 特許データ用フィールド
+    data_files: Optional[Dict[str, str]] = None
+    auto_discovery: bool = False
+    discovery_paths: Optional[List[str]] = None
+    supported_formats: Optional[List[str]] = None
+    max_patent_length: int = 2048
+    max_implementation_length: int = 1024
+    remove_references: bool = True
+    clean_formatting: bool = True
 
 @dataclass
 class QuantizationConfig:
