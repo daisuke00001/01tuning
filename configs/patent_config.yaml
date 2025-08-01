@@ -17,11 +17,10 @@ model:
 dataset:
   name: "patent_japanese"
   format: "patent"
-  # 修正後
   data_files:
-  train: "data/processed/option1_paragraph_unit.json"  #段落単位データセット（3,655サンプル）
-  validation: "data/processed/option2_conversation.json"  #会話形式データセット（7,357ターン）
-  test: "data/processed/chatml_training_with_paragraphs_full.json"  #基本ChatMLデータセット
+    train: "data/processed/option1_paragraph_unit.json"  #段落単位データセット（3,655サンプル）
+    validation: "data/processed/option2_conversation.json"  #会話形式データセット（7,357ターン）
+    test: "data/processed/chatml_training_with_paragraphs_full.json"  #基本ChatMLデータセット
   
   # 自動データディスカバリー設定
   auto_discovery: true
