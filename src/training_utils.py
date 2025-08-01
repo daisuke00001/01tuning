@@ -132,6 +132,21 @@ class TrainingManager:
                     converted_dataset = Dataset.from_list(converted_data)
                     logger.info(f"✅ ChatML変換完了: {len(converted_dataset)} 件")
                     
+                    # データ変換コールバック追加（型エラー修正）
+                    def formatting_prompts_func_chatml(examples):
+                        """ChatML用の型変換を含むデータフォーマット関数"""
+                        if isinstance(examples, dict):
+                            # 単一例の場合
+                            text = examples.get("text", "")
+                            return {"text": [str(text)]}
+                        else:
+                            # バッチの場合
+                            texts = []
+                            if "text" in examples:
+                                for text in examples["text"]:
+                                    texts.append(str(text) if text is not None else "")
+                            return {"text": texts}
+
                     # 通常のtext形式として処理
                     trainer = SFTTrainer(
                         model=model,
@@ -141,6 +156,7 @@ class TrainingManager:
                         max_seq_length=self.config.model.max_seq_length,
                         dataset_num_proc=1,  # ChatML変換時は安定性優先
                         packing=False,
+                        formatting_func=formatting_prompts_func_chatml,
                         args=sft_config,
                     )
                     
@@ -158,6 +174,22 @@ class TrainingManager:
                 
                 logger.info(f"設定: dataset_num_proc={dataset_num_proc}, packing={packing} (Triton問題回避)")
                 
+                # データ変換コールバック追加（型エラー修正）
+                def formatting_prompts_func(examples):
+                    """型変換を含むデータフォーマット関数"""
+                    if isinstance(examples, dict):
+                        # 単一例の場合
+                        text = examples.get(self.config.data.text_field, "")
+                        return {"text": [str(text)]}
+                    else:
+                        # バッチの場合
+                        texts = []
+                        text_field = self.config.data.text_field
+                        if text_field in examples:
+                            for text in examples[text_field]:
+                                texts.append(str(text) if text is not None else "")
+                        return {"text": texts}
+
                 trainer = SFTTrainer(
                     model=model,
                     tokenizer=tokenizer,
@@ -166,6 +198,7 @@ class TrainingManager:
                     max_seq_length=self.config.model.max_seq_length,
                     dataset_num_proc=dataset_num_proc,
                     packing=packing,
+                    formatting_func=formatting_prompts_func,
                     args=sft_config,
                 )
             else:
