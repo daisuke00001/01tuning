@@ -9,7 +9,7 @@ model:
   use_fast_tokenizer: true
   trust_remote_code: false
   max_seq_length: 1024  # Tritonエラー回避のため削減
-  dtype: null
+  dtype: "float16"
   load_in_4bit: true
   token: null
 
@@ -50,18 +50,18 @@ data:
   dataset_name: "patent_japanese"
   train_split: "train"
   text_field: "text"
-  dataset_num_proc: 1  # Tritonエラー回避のため1に変更
-  packing: false
+  dataset_num_proc: 2  # Alpaca成功パターンに合わせる
+  packing: true
 
 # 特許データ用トレーニング設定（Google Colab T4 GPU最適化）
 training:
   per_device_train_batch_size: 1
   per_device_eval_batch_size: 1
   gradient_accumulation_steps: 4
-  learning_rate: 0.00003
+  learning_rate: 0.00005
   num_train_epochs: null
-  max_steps: 200
-  warmup_steps: 20
+  max_steps: 100
+  warmup_steps: 10
   warmup_ratio: null
   lr_scheduler_type: "linear"
   logging_steps: 10
@@ -126,7 +126,7 @@ quantization:
 
 # Unsloth設定（特許データ用）
 unsloth:
-  use_unsloth: false  # Tritonエラー回避のため無効化
+  use_unsloth: true  # Alpaca成功パターンに合わせる
   max_seq_length: 1024
-  dtype: null
+  dtype: "float16"
   load_in_4bit: true
