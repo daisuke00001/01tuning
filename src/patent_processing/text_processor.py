@@ -8,6 +8,7 @@ import pandas as pd
 import xml.etree.ElementTree as ET
 import json
 import numpy as np
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Dict, Any, Union, Tuple, Mapping
@@ -15,20 +16,32 @@ import nltk
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords
 
+# ロガーの初期化
+logger = logging.getLogger(__name__)
+
 
 class PatentTextProcessor:
     """特許文書のテキスト前処理クラス"""
     
-    def __init__(self, language: str = "japanese", enable_chemical_processing: bool = True):
+    def __init__(self, language: str = "japanese", enable_chemical_processing: bool = True,
+                 max_description_length: Optional[int] = None,
+                 description_sources: Optional[List[str]] = None):
         """
         初期化
         
         Args:
             language: 処理対象の言語 ('japanese' or 'english')
             enable_chemical_processing: 化学式処理を有効にするかどうか
+            max_description_length: 実施形態説明の最大文字数（Noneの場合は制限なし）
+            description_sources: 使用する説明タグのリスト（Noneの場合は全て使用）
+                                ['EmbodimentDescription', 'DetailedDescription', 'BestMode', 'InventionMode']
         """
         self.language = language
         self.enable_chemical_processing = enable_chemical_processing
+        self.max_description_length = max_description_length or 50000  # デフォルト50,000文字
+        self.description_sources = description_sources or [
+            'EmbodimentDescription', 'DetailedDescription', 'BestMode', 'InventionMode'
+        ]
         self._download_nltk_data()
         
         # 化学式処理の初期化
@@ -1083,7 +1096,7 @@ class PatentTextProcessor:
             return ""
     
     def _clean_xml_text(self, text: str) -> str:
-        """XMLから抽出したテキストのクリーニング"""
+        """XMLから抽出したテキストのクリーニング（段落番号対応版）"""
         if not text:
             return ""
         
@@ -1094,6 +1107,52 @@ class PatentTextProcessor:
         text = re.sub(r'\s+', ' ', text)
         
         return text.strip()
+    
+    def _extract_text_with_paragraph_numbers(self, element) -> str:
+        """
+        段落番号【XXXX】を含めてテキストを抽出
+        
+        Args:
+            element: XMLエレメント
+            
+        Returns:
+            段落番号付きテキスト
+        """
+        if element is None:
+            return ""
+        
+        text_parts = []
+        
+        # 直接の子要素を処理
+        for child in element:
+            if child.tag.endswith('}P'):  # com:P または pat:P
+                # 段落番号を取得
+                p_number = child.get('{http://www.wipo.int/standards/XMLSchema/ST96/Common}pNumber')
+                if not p_number:
+                    p_number = child.get('pNumber')  # 名前空間なしも試行
+                
+                # 段落のテキストを取得
+                p_text = ET.tostring(child, encoding='unicode', method='text')
+                p_text = self._clean_xml_text(p_text)
+                
+                if p_text:
+                    if p_number:
+                        # 段落番号付きで追加
+                        text_parts.append(f"【{p_number}】\n{p_text}")
+                    else:
+                        # 段落番号なしで追加
+                        text_parts.append(p_text)
+            else:
+                # P以外のタグは再帰処理
+                child_text = self._extract_text_with_paragraph_numbers(child)
+                if child_text:
+                    text_parts.append(child_text)
+        
+        # 直接テキストがある場合も含める
+        if element.text and element.text.strip():
+            text_parts.insert(0, element.text.strip())
+        
+        return '\n\n'.join(text_parts)
     
     def _extract_abstract(self, root) -> str:
         """要約の抽出"""
@@ -1130,20 +1189,42 @@ class PatentTextProcessor:
     def _extract_detailed_description(self, root) -> str:
         """
         詳細な説明の抽出（発明を実施するための形態）
-        注意: EmbodimentDescription優先、見つからない場合DetailedDescriptionを使用
+        注意: EmbodimentDescription優先、見つからない場合DetailedDescription、BestMode、InventionModeを使用
+        段階1: BestModeを追加（2025-08-01）
+        段階2: InventionModeも追加（2025-08-01）
+        段階3: 文字数制限とセクション選択機能追加（2025-08-01）
+        段階4: 段落番号【XXXX】を保持（2025-08-01）
         """
-        # まずEmbodimentDescription（実施形態）を優先的に抽出
-        embodiment_elem = root.find('.//pat:EmbodimentDescription', self.namespaces)
-        if embodiment_elem is not None:
-            text = ET.tostring(embodiment_elem, encoding='unicode', method='text')
-            return self._clean_xml_text(text)
+        # タグマッピング
+        tag_mapping = {
+            'EmbodimentDescription': './/pat:EmbodimentDescription',
+            'DetailedDescription': './/pat:DetailedDescription',
+            'BestMode': './/pat:BestMode',
+            'InventionMode': './/jppat:InventionMode'
+        }
         
-        # フォールバック: DetailedDescription
-        desc_elem = root.find('.//pat:DetailedDescription', self.namespaces)
-        if desc_elem is not None:
-            text = ET.tostring(desc_elem, encoding='unicode', method='text')
-            return self._clean_xml_text(text)
+        # 設定されたソースのみを使用
+        for source in self.description_sources:
+            if source not in tag_mapping:
+                continue
+                
+            xpath = tag_mapping[source]
+            elem = root.find(xpath, self.namespaces)
             
+            if elem is not None:
+                # 段落番号を含めてテキストを抽出
+                cleaned_text = self._extract_text_with_paragraph_numbers(elem)
+                
+                if cleaned_text:
+                    # 文字数制限の適用
+                    if len(cleaned_text) > self.max_description_length:
+                        logger.warning(f"{source}の文字数が制限を超えています: {len(cleaned_text)} > {self.max_description_length}")
+                        # 制限内に収める（末尾に省略記号を追加）
+                        cleaned_text = cleaned_text[:self.max_description_length - 3] + "..."
+                    
+                    logger.info(f"{source}から実施形態を抽出しました（段落番号付き、最終文字数: {len(cleaned_text)}文字）")
+                    return cleaned_text
+        
         return ""
     
     def _extract_claims(self, root) -> List[Dict[str, str]]:
@@ -1484,6 +1565,14 @@ class PatentTextProcessor:
         for _, row in data.iterrows():
             patent_id = row.get('patent_number', '')
             
+            # patent_idが空の場合、ダミーIDを生成
+            if not patent_id or patent_id.strip() == '':
+                # ファイル名やインデックスからダミーIDを生成
+                file_name = row.get('file_name', 'unknown')
+                dummy_id = f"patent_{hash(file_name) % 100000:05d}"  # 5桁のダミーID
+                patent_id = dummy_id
+                logger.warning(f"空のpatent_idを検出、ダミーIDを生成: {patent_id}")
+            
             sections = [
                 {'patent_id': patent_id, 'section': 'title', 'text': row.get('title', '')},
                 {'patent_id': patent_id, 'section': 'abstract', 'text': row.get('abstract', '')},
@@ -1492,7 +1581,7 @@ class PatentTextProcessor:
                 {'patent_id': patent_id, 'section': 'detailed_description', 'text': row.get('detailed_description', '')},
             ]
             
-            # 請求項を個別に追加
+            # 請求項を個別に追加（詳細分析用）
             claims = row.get('claims', [])
             for claim in claims:
                 sections.append({
@@ -1500,6 +1589,24 @@ class PatentTextProcessor:
                     'section': f"claim_{claim.get('claim_number', '')}",
                     'text': claim.get('claim_text', '')
                 })
+            
+            # 請求項を統合してchat format用の統合セクションも追加
+            if claims:
+                combined_claims_text = []
+                for claim in claims:
+                    claim_text = claim.get('claim_text', '')
+                    claim_number = claim.get('claim_number', '')
+                    if claim_text:
+                        # 【請求項N】形式で統合
+                        formatted_claim = f"【請求項{claim_number}】{claim_text}" if claim_number else claim_text
+                        combined_claims_text.append(formatted_claim)
+                
+                if combined_claims_text:
+                    sections.append({
+                        'patent_id': patent_id,
+                        'section': 'claims',  # chat format用の統合セクション
+                        'text': '\n'.join(combined_claims_text)
+                    })
             
             sections_data.extend(sections)
         

@@ -22,6 +22,45 @@ class DataProcessor:
         self.tokenizer = tokenizer
         self.dataset = None
         
+    def clean_patent_text(self, text: str) -> str:
+        """特許テキストのクリーニング"""
+        import re
+        
+        if not isinstance(text, str):
+            return ""
+        
+        # 異常な文字列パターンを除去
+        text = re.sub(r'CHEMICAL\d+', '', text)  # CHEMICAL6479等を除去
+        text = re.sub(r'LEGAL\d+', '', text)     # LEGAL170等を除去
+        text = re.sub(r'MIC[A-Z]*', '', text)    # MICA等を除去
+        text = re.sub(r'CH{3,}', '', text)       # CHCHCHCH等を除去
+        text = re.sub(r'AL\d+', '', text)        # AL20等を除去
+        
+        # 連続する同じ文字を除去（3文字以上）
+        text = re.sub(r'(.)\1{2,}', r'\1\1', text)
+        
+        # 複数の空白を単一に
+        text = re.sub(r'\s+', ' ', text)
+        
+        # 制御文字を除去
+        text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]', '', text)
+        
+        return text.strip()
+        
+    def limit_text_length(self, text: str, max_length: int = 2000) -> str:
+        """テキスト長を制限"""
+        if len(text) > max_length:
+            # 文の区切りで切る
+            sentences = text.split('。')
+            result = ""
+            for sentence in sentences:
+                if len(result + sentence + '。') <= max_length:
+                    result += sentence + '。'
+                else:
+                    break
+            return result if result else text[:max_length]
+        return text
+        
         # 特許データ処理機能の初期化
         if PATENT_PROCESSING_AVAILABLE:
             self.patent_processor = PatentTextProcessor(language="japanese")
@@ -203,6 +242,31 @@ class DataProcessor:
                         processed_data = [{"error": f"JSONファイルの読み込みに失敗: {data_path}"}]
                     else:
                         logger.info(f"JSONファイル読み込み成功: {len(processed_data)}件のデータ")
+                        
+                        # 特許データのクリーニング処理
+                        logger.info("特許データクリーニング開始...")
+                        cleaned_data = []
+                        for item in processed_data:
+                            if isinstance(item, dict):
+                                cleaned_item = {}
+                                for key, value in item.items():
+                                    if key == 'text' and isinstance(value, str):
+                                        # テキストフィールドをクリーニング
+                                        cleaned_text = self.clean_patent_text(value)
+                                        cleaned_text = self.limit_text_length(cleaned_text, 1500)
+                                        cleaned_item[key] = cleaned_text
+                                    elif isinstance(value, str):
+                                        # その他の文字列フィールドも軽くクリーニング
+                                        cleaned_item[key] = self.clean_patent_text(value)[:500]
+                                    else:
+                                        cleaned_item[key] = value
+                                
+                                # 有効なデータのみ保持
+                                if cleaned_item.get('text') and len(cleaned_item['text']) > 100:
+                                    cleaned_data.append(cleaned_item)
+                        
+                        processed_data = cleaned_data
+                        logger.info(f"クリーニング完了: {len(processed_data)}件の有効データ")
                         
                 except Exception as e:
                     logger.error(f"JSON処理エラー: {e}")

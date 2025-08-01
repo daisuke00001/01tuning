@@ -1,0 +1,28 @@
+{
+  "sections_dataset.json": {
+    "processing_summary": {
+      "original_count": 6944,
+      "cleaned_count": 5209,
+      "retention_rate": 75.01440092165899
+    },
+    "text_length_stats": {
+      "original_avg_length": 2376.2400633640555,
+      "cleaned_avg_length": 258.91956229602613,
+      "max_length": 803,
+      "min_length": 50
+    }
+  },
+  "training_dataset.json": {
+    "processing_summary": {
+      "original_count": 441,
+      "cleaned_count": 436,
+      "retention_rate": 98.86621315192744
+    },
+    "text_length_stats": {
+      "original_avg_length": 31516.419501133787,
+      "cleaned_avg_length": 759.4564220183486,
+      "max_length": 803,
+      "min_length": 321
+    }
+  }
+}

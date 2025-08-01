@@ -8,7 +8,7 @@ model:
   tokenizer_name: "SakanaAI/TinySwallow-1.5B-Instruct"
   use_fast_tokenizer: true
   trust_remote_code: false
-  max_seq_length: 1024  # Tritonエラー回避のため削減
+  max_seq_length: 2048  # 特許データに適した長さ（ChatML形式対応）
   dtype: "float16"
   load_in_4bit: true
   token: null
@@ -17,10 +17,11 @@ model:
 dataset:
   name: "patent_japanese"
   format: "patent"
+  # 修正後
   data_files:
-    train: "data/processed/training_dataset.json"
-    validation: "data/processed/complete_dataset.json"
-    test: "data/processed/chatml_training.json"
+  train: "data/processed/option1_paragraph_unit.json"  #段落単位データセット（3,655サンプル）
+  validation: "data/processed/option2_conversation.json"  #会話形式データセット（7,357ターン）
+  test: "data/processed/chatml_training_with_paragraphs_full.json"  #基本ChatMLデータセット
   
   # 自動データディスカバリー設定
   auto_discovery: true
@@ -60,13 +61,13 @@ training:
   gradient_accumulation_steps: 4
   learning_rate: 0.00005
   num_train_epochs: null
-  max_steps: 100
-  warmup_steps: 10
+  max_steps: 200
+  warmup_steps: 5
   warmup_ratio: null
   lr_scheduler_type: "linear"
-  logging_steps: 10
-  save_steps: 50
-  eval_steps: 50
+  logging_steps: 5
+  save_steps: 25
+  eval_steps: 25
   save_total_limit: 2
   load_best_model_at_end: false
   metric_for_best_model: "eval_loss"
@@ -127,6 +128,6 @@ quantization:
 # Unsloth設定（特許データ用）
 unsloth:
   use_unsloth: true  # Alpaca成功パターンに合わせる
-  max_seq_length: 1024
+  max_seq_length: 2048
   dtype: "float16"
   load_in_4bit: true
