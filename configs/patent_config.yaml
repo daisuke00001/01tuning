@@ -18,9 +18,9 @@ dataset:
   name: "patent_japanese"
   format: "patent"
   data_files:
-    train: "data/processed/patent_train.jsonl"
-    validation: "data/processed/patent_val.jsonl"
-    test: "data/processed/patent_test.jsonl"
+    train: "data/processed/training_dataset.json"
+    validation: "data/processed/complete_dataset.json"
+    test: "data/processed/chatml_training.json"
   
   # 自動データディスカバリー設定
   auto_discovery: true

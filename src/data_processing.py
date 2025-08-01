@@ -168,8 +168,45 @@ class DataProcessor:
                 if isinstance(processed_data, dict):
                     processed_data = [processed_data]
             elif data_path.endswith('.json') or data_path.endswith('.jsonl'):
-                # JSONファイルの処理（このメソッドが存在するかも要確認）
-                processed_data = [{"error": "JSON処理はまだ実装されていません"}]
+                # JSONファイルの処理
+                import json
+                processed_data = []
+                
+                try:
+                    # 文字化け対策のため複数のエンコーディングを試行
+                    encodings = ['utf-8', 'cp932', 'shift_jis', 'utf-8-sig']
+                    
+                    for encoding in encodings:
+                        try:
+                            if data_path.endswith('.json'):
+                                # JSON形式
+                                with open(data_path, 'r', encoding=encoding) as f:
+                                    data = json.load(f)
+                                    if isinstance(data, list):
+                                        processed_data = data
+                                    else:
+                                        processed_data = [data]
+                                break
+                            else:
+                                # JSONL形式
+                                with open(data_path, 'r', encoding=encoding) as f:
+                                    for line in f:
+                                        line = line.strip()
+                                        if line:
+                                            processed_data.append(json.loads(line))
+                                break
+                        except (UnicodeDecodeError, json.JSONDecodeError):
+                            continue
+                    
+                    if not processed_data:
+                        logger.error(f"JSONファイルの読み込みに失敗: {data_path}")
+                        processed_data = [{"error": f"JSONファイルの読み込みに失敗: {data_path}"}]
+                    else:
+                        logger.info(f"JSONファイル読み込み成功: {len(processed_data)}件のデータ")
+                        
+                except Exception as e:
+                    logger.error(f"JSON処理エラー: {e}")
+                    processed_data = [{"error": f"JSON処理エラー: {e}"}]
             else:
                 raise ValueError(f"サポートされていないファイル形式: {data_path}")
             
