@@ -18,7 +18,7 @@ data:
 model:
   cache_dir: "models/cache"
   output_dir: "models/saved_models"
-  torch_dtype: "float16"
+  torch_dtype: null
   device_map: "auto"
 
 # トレーニング設定
